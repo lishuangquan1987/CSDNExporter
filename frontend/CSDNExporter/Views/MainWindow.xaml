@@ -5,9 +5,38 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         xmlns:local="clr-namespace:CSDNExporter.Views"
+        xmlns:vm="clr-namespace:CSDNExporter.ViewModels"
         mc:Ignorable="d"
-        Title="CSDN文章导出工具" Height="450" Width="800">
+        Title="CSDN文章导出工具" Height="650" Width="1000" d:DataContext="{d:DesignInstance vm:MainWindowViewModel}">
     <Grid>
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition Height="40"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal">
+            <TextBlock  VerticalAlignment="Center">CSDN 用户名:</TextBlock>
+            <TextBox Height="30" VerticalContentAlignment="Center" Width="200" Text="{Binding CSDNUserName,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"></TextBox>
+            <Button Margin="5,0,0,0" Height="30" Width="100" Command="{Binding GetArticlesCmd}">获取文章</Button>
+            <CheckBox  Margin="5,0,0,0" Content="全选/全不选" IsChecked="{Binding IsSelectAll,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
+            </CheckBox>
+            <TextBlock VerticalAlignment="Center" Foreground="Green" Margin="10,0,0,0" Text="{Binding TotalArticles,StringFormat={}共{0}篇文章}"></TextBlock>
+        </StackPanel>
+        <DataGrid BorderThickness="1" Margin="5" Grid.Row="1"  ItemsSource="{Binding Articles}" AutoGenerateColumns="False" CanUserAddRows="False">
+            <DataGrid.Columns>
+                <DataGridCheckBoxColumn Header="选择" IsReadOnly="False" Binding="{Binding IsSelected,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"></DataGridCheckBoxColumn>
+                <DataGridTextColumn Header="文章ID" IsReadOnly="True" Binding="{Binding ArticleId}"></DataGridTextColumn>
+                <DataGridTextColumn Header="名称" IsReadOnly="True" MaxWidth="500" Binding="{Binding Title}"></DataGridTextColumn>
+                <DataGridTextColumn Header="阅读数" IsReadOnly="True" Binding="{Binding ViewCount}"></DataGridTextColumn>
+                <DataGridTextColumn Header="评论书" IsReadOnly="True" Binding="{Binding CommentCount}"></DataGridTextColumn>
+                <DataGridTextColumn Header="发布时间" IsReadOnly="True" Binding="{Binding PostTime}"></DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Height="30" Width="100" Command="{Binding ExportCmd}" Margin="5">Export</Button>
+        </StackPanel>
+        <Grid Grid.RowSpan="10" Background="#2FFFFFFF" Visibility="{Binding IsBusy,Converter={StaticResource BooleanToVisibilityConverter}}">
+            <mah:ProgressRing IsActive="True"></mah:ProgressRing>
+        </Grid>
     </Grid>
 </mah:MetroWindow>

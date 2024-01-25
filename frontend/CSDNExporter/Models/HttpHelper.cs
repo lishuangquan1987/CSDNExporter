@@ -13,7 +13,7 @@ namespace CSDNExporter.Models
 {
     internal class HttpHelper
     {
-        public static string Get(string url, object? query = null, Dictionary<string, string> extraHeader = null)
+        public static async Task<string> Get(string url, object? query = null, Dictionary<string, string> extraHeader = null)
         {
             var request = CreateHttpRequest(url, query, WebRequestMethods.Http.Get);
             if (extraHeader != null && extraHeader.Count > 0)
@@ -23,19 +23,89 @@ namespace CSDNExporter.Models
                     request.Headers.Add(key, extraHeader[key]);
                 }
             }
-            using (HttpWebResponse? response = request.GetResponse() as HttpWebResponse)
+            using (HttpWebResponse? response =await request.GetResponseAsync() as HttpWebResponse)
             {
                 var stream = response?.GetResponseStream();
                 if (stream == null) return "";
                 //以流的形式读取，返回的就是字符串的json格式
                 StreamReader reader = new StreamReader(stream);
-                return reader.ReadToEnd();
+                return await reader.ReadToEndAsync();
             }
 
         }
-        public static T? Get<T>(string url, object? query = null, Dictionary<string, string> extraHeader = null)
+        public static async Task<T?> Get<T>(string url, object? query = null, Dictionary<string, string> extraHeader = null)
         {
-            var str = Get(url, query, extraHeader);
+            var str =await Get(url, query, extraHeader);
+            return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(str);
+        }
+        /// <summary>
+        /// Post方法
+        /// </summary>
+        /// <param name="url">地址</param>
+        /// <param name="data">写入body的数据，会转换为Json</param>
+        /// <param name="query">拼接到地址的参数</param>
+        /// <param name="extraHeader">额外的头部</param>
+        /// <returns></returns>
+        public static async Task<string> Post(string url, object data, object query = null, Dictionary<string, string> extraHeader = null)
+        {
+            try
+            {
+                var request = CreateHttpRequest(url, query, WebRequestMethods.Http.Post);
+
+                if (extraHeader != null && extraHeader.Count > 0)
+                {
+                    foreach (var key in extraHeader.Keys)
+                    {
+                        request.Headers.Add(key, extraHeader[key]);
+                    }
+                }
+
+                //创建参数
+                string str = Newtonsoft.Json.JsonConvert.SerializeObject(data);
+                byte[] byteData = UTF8Encoding.UTF8.GetBytes(str);
+                request.ContentLength = byteData.Length;
+
+                //以流的形式附加参数
+                using (Stream postStream =await request.GetRequestStreamAsync())
+                {
+                    await postStream.WriteAsync(byteData, 0, byteData.Length);
+                }
+
+                //接收来自restful的回复
+                string json = string.Empty;  //返回的类型是json格式字符串，声明一个来接收
+                using (HttpWebResponse response =await request.GetResponseAsync() as HttpWebResponse)
+                {
+                    //以流的形式读取，返回的就是字符串的json格式
+                    StreamReader reader = new StreamReader(response.GetResponseStream());
+                    json =await reader.ReadToEndAsync();
+                }
+                return json;
+            }
+            catch (System.Net.WebException webException)
+            {
+                HttpWebResponse response = webException.Response as HttpWebResponse;
+                if (response != null && response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    using (response)
+                    {
+                        //以流的形式读取，返回的就是字符串的json格式
+                        StreamReader reader = new StreamReader(response.GetResponseStream());
+                        return await reader.ReadToEndAsync();
+                    }
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        public static async Task< T> Post<T>(string url, object data, object query = null, Dictionary<string, string> extraHeader = null)
+        {
+            var str =await Post(url, data, query, extraHeader);
             return Newtonsoft.Json.JsonConvert.DeserializeObject<T>(str);
         }
         /// <summary>
