@@ -1,0 +1,29 @@
+﻿<mah:MetroWindow x:Class="CSDNExporter.Views.CookieSettingView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:vm="clr-namespace:CSDNExporter.ViewModels"
+        xmlns:local="clr-namespace:CSDNExporter.Views"
+        mc:Ignorable="d"
+        Title="Cookie设置" Height="450" Width="800" d:DataContext="{d:DesignInstance vm:CookieSettingViewModel}">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40"></RowDefinition>
+            <RowDefinition></RowDefinition>
+            <RowDefinition Height="40"></RowDefinition>
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="5,0,0,0">
+            <TextBlock VerticalAlignment="Center">请点击</TextBlock>
+            <Label VerticalContentAlignment="Center">
+                <Label.Content>
+                    <Hyperlink Command="{Binding TestUrlClickCmd}">测试地址</Hyperlink>
+                </Label.Content>
+            </Label>
+            <TextBlock VerticalAlignment="Center">会打开默认浏览器，完成滑块验证（如有需要验证），然后按F12,将Cookie复制到下方框中保存即可</TextBlock>
+        </StackPanel>
+        <TextBox Margin="5" Text="{Binding Cookie}" TextWrapping="Wrap" Grid.Row="1"></TextBox>
+        <Button HorizontalAlignment="Right" Grid.Row="2" Height="30" Width="100" Margin="5" Command="{Binding SaveCmd}">保存</Button>
+    </Grid>
+</mah:MetroWindow>

@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using ControlzEx.Standard;
+using CSDNExporter.BlogResolver;
+using CSDNExporter.Config;
 using CSDNExporter.Models;
 using CSDNExporter.Views;
 using MahApps.Metro.Controls.Dialogs;
@@ -18,11 +20,21 @@ namespace CSDNExporter.ViewModels
 {
     public class MainWindowViewModel : INotifyPropertyChanged
     {
+        
         public MainWindowViewModel()
         {
             ExportCmd = new RelayCommand(Export, () => this.Articles.Count > 0);
             GetArticlesCmd = new RelayCommand(GetArticle, () => !string.IsNullOrEmpty(this.CSDNUserName));
+            CookieSettingCmd = new RelayCommand(CookieSetting);
             Articles.CollectionChanged += (s, e) => this.ExportCmd?.NotifyCanExecuteChanged();
+            this.IsDownloadImage = CSDNExportConfig.Instance.Config.IsDownloadImage;
+            this.CSDNUserName = CSDNExportConfig.Instance.Config.UserName;
+        }
+
+        private void CookieSetting()
+        {
+            CookieSettingView v = new CookieSettingView();
+            v.ShowDialog();
         }
 
         public void OnPropertyChanged(string propertyName, object before, object after)
@@ -59,12 +71,22 @@ namespace CSDNExporter.ViewModels
 
         private async void GetArticle()
         {
+            if (string.IsNullOrEmpty(CSDNExportConfig.Instance.Config.Cookie))
+            {
+                await (App.Current.MainWindow as MainWindow).ShowMessageAsync("Error", "请先设置Cookie", MessageDialogStyle.Affirmative);
+                return;
+            }
+            //保存配置
+            CSDNExportConfig.Instance.Config.IsDownloadImage = this.IsDownloadImage;
+            CSDNExportConfig.Instance.Config.UserName = this.CSDNUserName;
+            CSDNExportConfig.Instance.SaveConfig();
             try
             {
                 Articles.Clear();
                 this.TotalArticles = 0;
                 IsBusy = true;
-                var result = await CSDNHelper.GetArticleInfos(this.CSDNUserName);
+                IsPercentVisible = false;
+                var result = await CSDNHelper.GetArticleInfos(this.CSDNUserName,CSDNExportConfig.Instance.Config.Cookie);
                 if (!result.IsSuccess)
                 {
                     await (App.Current.MainWindow as MainWindow).ShowMessageAsync("Error", result.ErrorMsg, MessageDialogStyle.Affirmative);
@@ -76,11 +98,12 @@ namespace CSDNExporter.ViewModels
             }
             catch (Exception e)
             {
-                await (App.Current.MainWindow as MainWindow).ShowMessageAsync("Error", e.Message, MessageDialogStyle.Affirmative);
+                await (App.Current.MainWindow as MainWindow).ShowMessageAsync("Error", e.Message+"\n有可能需要重新设置Cookie", MessageDialogStyle.Affirmative);
             }
             finally
             {
                 IsBusy = false;
+                IsPercentVisible = false;
             }
         }
 
@@ -91,17 +114,25 @@ namespace CSDNExporter.ViewModels
                 var articlesToExport = this.Articles.Where(x => x.IsSelected).ToList();
                 if (!articlesToExport.Any())
                 {
-                    await (App.Current.MainWindow as MainWindow).ShowMessageAsync("Error", "Please select at least one article to export", MessageDialogStyle.AffirmativeAndNegativeAndDoubleAuxiliary);
+                    await (App.Current.MainWindow as MainWindow).ShowMessageAsync("Error", "Please select at least one article to export", MessageDialogStyle.Affirmative);
                     return;
                 }
 
                 OpenFolderDialog openFolderDialog = new OpenFolderDialog();
-                openFolderDialog.InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 if (openFolderDialog.ShowDialog() != true) return;
 
                 IsBusy = true;
-                foreach (var article in articlesToExport)
+                IsPercentVisible = true;
+                ExportPercent = 0;
+                List<IBlogResolver> resolvers = new List<IBlogResolver>();
+                resolvers.Add(new ContentResolver());
+                if (IsDownloadImage)
                 {
+                    resolvers.Add(new ImageResolver());
+                }
+                for (int i = 0; i < articlesToExport.Count; i++)
+                {
+                    var article = articlesToExport[i];
                     var result = await ArticleServiceHelper.GetMarkDownStr(article.Url);
                     if (!result.IsSuccess)
                     {
@@ -110,7 +141,16 @@ namespace CSDNExporter.ViewModels
                     }
 
                     string path = Path.Combine(openFolderDialog.FolderName, $"{ResolvePath(article.Title)}.md");
-                    File.WriteAllText(path, result.Result);
+
+                    var contents = result.Result.Split('\n');
+                    foreach (var resolver in resolvers)
+                    {
+                        contents =await resolver.Resolve(contents, new Dictionary<string, object>() { { "Path", path } });
+                    }
+
+                    await File.WriteAllLinesAsync(path, contents);
+
+                    ExportPercent = Math.Round((i + 1) / (double)articlesToExport.Count * 100, 2);
                 }
                 await (App.Current.MainWindow as MainWindow).ShowMessageAsync("OK", "导出成功", MessageDialogStyle.Affirmative);
             }
@@ -121,15 +161,17 @@ namespace CSDNExporter.ViewModels
             finally
             {
                 IsBusy = false;
+                IsPercentVisible = false;
             }
         }
 
         private string ResolvePath(string str)
         {
             StringBuilder sb = new StringBuilder();
+            var invalidPathChars = Path.GetInvalidFileNameChars();
             foreach (var c in str)
             {
-                if (Path.InvalidPathChars.Contains(c))
+                if (invalidPathChars.Contains(c))
                 {
                     sb.Append("_");
                 }
@@ -144,6 +186,8 @@ namespace CSDNExporter.ViewModels
         public RelayCommand ExportCmd { get; set; }
         public RelayCommand GetArticlesCmd { get; set; }
 
+        public RelayCommand CookieSettingCmd { get; set; }
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         private ObservableCollection<ArticleInfo> articles = new ObservableCollection<ArticleInfo>();
@@ -153,10 +197,16 @@ namespace CSDNExporter.ViewModels
             set { articles = value; }
         }
 
-        public int TotalArticles { get; set; } 
+        public int TotalArticles { get; set; }
 
         public string CSDNUserName { get; set; } = "lishuangquan1987";
         public bool IsBusy { get; set; }
         public bool IsSelectAll { get; set; }
+        /// <summary>
+        /// 导出进度百分比
+        /// </summary>
+        public double ExportPercent { get; set; }
+        public bool IsDownloadImage { get; set; }
+        public bool IsPercentVisible { get; set; }
     }
 }

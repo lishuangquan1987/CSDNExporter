@@ -15,7 +15,7 @@ namespace CSDNExporter.Models
         public static async Task<ArticleServiceResponse> GetMarkDownStr(string url)
         {
             var request = new ArticleServiceRequest() { Url = url };
-            if(StartService("html_to_markdown_service","",out var errMsg)) throw new Exception(errMsg);
+            if(!StartService("html_to_markdown_service","",out var errMsg)) throw new Exception(errMsg);
             return await HttpHelper.Post<ArticleServiceResponse>("http://127.0.0.1:8081/get_markdown_string",request);
         }
         private static object lockObj = new object();

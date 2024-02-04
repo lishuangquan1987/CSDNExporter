@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
+        xmlns:iconpacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
         xmlns:local="clr-namespace:CSDNExporter.Views"
         xmlns:vm="clr-namespace:CSDNExporter.ViewModels"
         mc:Ignorable="d"
@@ -18,13 +19,25 @@
             <TextBlock  VerticalAlignment="Center">CSDN 用户名:</TextBlock>
             <TextBox Height="30" VerticalContentAlignment="Center" Width="200" Text="{Binding CSDNUserName,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"></TextBox>
             <Button Margin="5,0,0,0" Height="30" Width="100" Command="{Binding GetArticlesCmd}">获取文章</Button>
-            <CheckBox  Margin="5,0,0,0" Content="全选/全不选" IsChecked="{Binding IsSelectAll,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
-            </CheckBox>
-            <TextBlock VerticalAlignment="Center" Foreground="Green" Margin="10,0,0,0" Text="{Binding TotalArticles,StringFormat={}共{0}篇文章}"></TextBlock>
+            <Button Height="30" Width="30" Margin="5" Command="{Binding CookieSettingCmd}">
+                <iconpacks:PackIconMaterial Kind="Cookie"  VerticalAlignment="Center" ToolTip="Cookie设置"></iconpacks:PackIconMaterial>
+            </Button>
+           <TextBlock VerticalAlignment="Center" Foreground="Green" Margin="10,0,0,0" Text="{Binding TotalArticles,StringFormat={}共{0}篇文章}"></TextBlock>
+            <TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Foreground="Green" Visibility="{Binding IsPercentVisible,Converter={StaticResource BooleanToVisibilityConverter}}" FontSize="15" FontWeight="Bold" >
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="{}导出进度：{0}%">
+                        <Binding Path="ExportPercent"></Binding>
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
         </StackPanel>
-        <DataGrid BorderThickness="1" Margin="5" Grid.Row="1"  ItemsSource="{Binding Articles}" AutoGenerateColumns="False" CanUserAddRows="False">
+        <DataGrid BorderThickness="1" x:Name="dg" Margin="5" Grid.Row="1"  ItemsSource="{Binding Articles}" AutoGenerateColumns="False" CanUserAddRows="False">
             <DataGrid.Columns>
-                <DataGridCheckBoxColumn Header="选择" IsReadOnly="False" Binding="{Binding IsSelected,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"></DataGridCheckBoxColumn>
+                <DataGridCheckBoxColumn IsReadOnly="False" Binding="{Binding IsSelected,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}">
+                    <DataGridCheckBoxColumn.Header>
+                        <CheckBox Content="全选/全不选" IsChecked="{Binding DataContext.IsSelectAll,ElementName=dg,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"></CheckBox>
+                    </DataGridCheckBoxColumn.Header>
+                </DataGridCheckBoxColumn>
                 <DataGridTextColumn Header="文章ID" IsReadOnly="True" Binding="{Binding ArticleId}"></DataGridTextColumn>
                 <DataGridTextColumn Header="名称" IsReadOnly="True" MaxWidth="500" Binding="{Binding Title}"></DataGridTextColumn>
                 <DataGridTextColumn Header="阅读数" IsReadOnly="True" Binding="{Binding ViewCount}"></DataGridTextColumn>
@@ -33,10 +46,15 @@
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Height="30" Width="100" Command="{Binding ExportCmd}" Margin="5">Export</Button>
+            <CheckBox Content="下载图片到本地" IsChecked="{Binding IsDownloadImage}"></CheckBox>
+            <Button Height="30" Width="100" Command="{Binding ExportCmd}" Margin="5">导出选中的文章</Button>
         </StackPanel>
         <Grid Grid.RowSpan="10" Background="#2FFFFFFF" Visibility="{Binding IsBusy,Converter={StaticResource BooleanToVisibilityConverter}}">
-            <mah:ProgressRing IsActive="True"></mah:ProgressRing>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <mah:ProgressRing IsActive="True"></mah:ProgressRing>
+               
+            </StackPanel>
+            
         </Grid>
     </Grid>
 </mah:MetroWindow>

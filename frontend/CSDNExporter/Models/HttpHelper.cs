@@ -180,5 +180,87 @@ namespace CSDNExporter.Models
             }
             return dic;
         }
+
+        /// <summary>
+        /// 下载文件，并写入到指定的路径，提供进度通知
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="savePath"></param>
+        /// <param name="progress">值为0~1</param>
+        /// <param name="query"></param>
+        /// <param name="extraHeader"></param>
+        public static async Task< byte[]> GetFileAsync(string url, object query = null, Dictionary<string, string> extraHeader = null)
+        {
+            var request = CreateHttpRequest(url, query, WebRequestMethods.Http.Get);
+            if (extraHeader != null && extraHeader.Count > 0)
+            {
+                foreach (var key in extraHeader.Keys)
+                {
+                    request.Headers.Add(key, extraHeader[key]);
+                }
+            }
+
+            List<byte> result = new List<byte>();
+
+            using (HttpWebResponse response =await request.GetResponseAsync() as HttpWebResponse)
+            using (var stream = response.GetResponseStream())
+            {
+                long total = response.ContentLength;
+                long receiveSize = 0;
+                //以流的形式读取，返回的就是字符串的json格式
+                byte[] datas = new byte[1024000];
+                while (true)
+                {
+                    var size =await stream.ReadAsync(datas, 0, datas.Length);
+                    if (size <= 0)
+                    {
+                        break;
+                    }
+                    receiveSize += size;
+                    result.AddRange(datas.Take(size));
+                }
+            }
+            return result.ToArray();
+        }
+        /// <summary>
+        /// 下载文件，并写入到指定的路径，提供进度通知
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="savePath"></param>
+        /// <param name="progress">值为0~1</param>
+        /// <param name="query"></param>
+        /// <param name="extraHeader"></param>
+        public static void GetFile(string url, string savePath, Action<double> progress, object query = null, Dictionary<string, string> extraHeader = null)
+        {
+            var request = CreateHttpRequest(url, query, WebRequestMethods.Http.Get);
+            if (extraHeader != null && extraHeader.Count > 0)
+            {
+                foreach (var key in extraHeader.Keys)
+                {
+                    request.Headers.Add(key, extraHeader[key]);
+                }
+            }
+
+            using (var fs = new FileStream(savePath, FileMode.Create, FileAccess.Write))
+            using (HttpWebResponse response = request.GetResponse() as HttpWebResponse)
+            using (var stream = response.GetResponseStream())
+            {
+                long total = response.ContentLength;
+                long receiveSize = 0;
+                //以流的形式读取，返回的就是字符串的json格式
+                while (true)
+                {
+                    byte[] datas = new byte[1024000];
+                    var size = stream.Read(datas, 0, datas.Length);
+                    if (size <= 0)
+                    {
+                        break;
+                    }
+                    fs.Write(datas.Take(size).ToArray(), 0, size);
+                    receiveSize += size;
+                    progress?.BeginInvoke(receiveSize / (double)total, null, null);
+                }
+            }
+        }
     }
 }
