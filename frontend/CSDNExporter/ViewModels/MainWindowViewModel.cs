@@ -9,6 +9,7 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -23,10 +24,9 @@ namespace CSDNExporter.ViewModels
         
         public MainWindowViewModel()
         {
-            ExportCmd = new RelayCommand(Export, () => this.Articles.Count > 0);
+            ExportCmd = new RelayCommand(Export, () => this.Articles.Where(x=>x.IsSelected).Count() > 0);
             GetArticlesCmd = new RelayCommand(GetArticle, () => !string.IsNullOrEmpty(this.CSDNUserName));
             CookieSettingCmd = new RelayCommand(CookieSetting);
-            Articles.CollectionChanged += (s, e) => this.ExportCmd?.NotifyCanExecuteChanged();
             this.IsDownloadImage = CSDNExportConfig.Instance.Config.IsDownloadImage;
             this.CSDNUserName = CSDNExportConfig.Instance.Config.UserName;
         }
@@ -34,6 +34,7 @@ namespace CSDNExporter.ViewModels
         private void CookieSetting()
         {
             CookieSettingView v = new CookieSettingView();
+            v.Owner = App.Current.MainWindow;
             v.ShowDialog();
         }
 
@@ -82,6 +83,10 @@ namespace CSDNExporter.ViewModels
             CSDNExportConfig.Instance.SaveConfig();
             try
             {
+                foreach (var article in this.articles)
+                {
+                    article.PropertyChanged -= OnArticlePropertyChanged;
+                }
                 Articles.Clear();
                 this.TotalArticles = 0;
                 IsBusy = true;
@@ -95,6 +100,11 @@ namespace CSDNExporter.ViewModels
 
                 result.Data?.ForEach(x => this.Articles.Add(x));
                 this.TotalArticles = result.Data!.Count;
+
+                foreach (var article in this.articles)
+                {
+                    article.PropertyChanged += OnArticlePropertyChanged;
+                }
             }
             catch (Exception e)
             {
@@ -105,6 +115,13 @@ namespace CSDNExporter.ViewModels
                 IsBusy = false;
                 IsPercentVisible = false;
             }
+        }
+
+        private void OnArticlePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName != nameof(ArticleInfo.IsSelected)) return;
+
+            this.ExportCmd?.NotifyCanExecuteChanged();
         }
 
         private async void Export()

@@ -8,6 +8,7 @@
         xmlns:local="clr-namespace:CSDNExporter.Views"
         xmlns:vm="clr-namespace:CSDNExporter.ViewModels"
         mc:Ignorable="d"
+        Icon="/tools-hardware.png"
         Title="CSDN文章导出工具" Height="650" Width="1000" d:DataContext="{d:DesignInstance vm:MainWindowViewModel}">
     <Grid>
         <Grid.RowDefinitions>
