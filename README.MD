@@ -2,6 +2,8 @@
 
 a `csdn` exporter,the backend is written in go and the frontend is written in c#/wpf
 
+![](https://github.com/lishuangquan1987/CSDNExporter/blob/master/images/Snipaste_2024-01-25_18-31-20.png)
+
 ## Usage and introduce
 
 [CSDN文章导出工具-CSDN博客](https://blog.csdn.net/lishuangquan1987/article/details/136031693)
