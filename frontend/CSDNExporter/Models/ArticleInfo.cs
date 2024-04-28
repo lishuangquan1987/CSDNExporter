@@ -12,6 +12,10 @@ namespace CSDNExporter.Models
     /// </summary>
     public class ArticleInfo : INotifyPropertyChanged
     {
+        /// <summary>
+        /// 显示的序号
+        /// </summary>
+        public int IndexDisplay { get; set; }
         public int ArticleId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }

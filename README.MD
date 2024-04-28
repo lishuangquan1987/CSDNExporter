@@ -6,9 +6,9 @@ a `csdn` exporter,the backend is written in go and the frontend is written in c#
 
 ## Usage and introduce
 
-[CSDN文章导出工具 (lishq.cn)](https://blog.lishq.cn/post/5)
-
 [CSDN文章导出工具-CSDN博客](https://blog.csdn.net/lishuangquan1987/article/details/136031693)
+
+[CSDN文章导出工具 (lishq.cn)](https://blog.lishq.cn/post/5)
 
 ## 说明
 

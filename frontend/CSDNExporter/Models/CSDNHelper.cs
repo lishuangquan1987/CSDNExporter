@@ -10,7 +10,8 @@ namespace CSDNExporter.Models
     internal class CSDNHelper
     {
         const string get_article_info_url = "https://blog.csdn.net/community/home-api/v1/get-business-list?page={0}&size={1}&businessType=blog&orderby=&noMore=false&year=&month=&username={2}";
-        public async static Task<OperationResult<List<ArticleInfo>?>> GetArticleInfos(string userName,string cookies)
+        const int pageSize = 100;//CSDN固定的，设置其他无效
+        public async static Task<OperationResult<List<ArticleInfo>?>> GetArticleInfos(string userName, string cookies)
         {
             //先获取一条，看看总数有多少 
             var url = string.Format(get_article_info_url, 1, 1, userName);
@@ -28,17 +29,33 @@ namespace CSDNExporter.Models
 
                 var total = result.Data.Total;
 
-                url = string.Format(get_article_info_url, 1, total, userName);
+                //这里需要分页，csdn的默认页是100，设置超过100无效，很坑
+                var count = total / pageSize;
+                List<ArticleInfo> articleInfos = new List<ArticleInfo>();
+                for (int i = 0; i <= count; i++)
+                {
+                    url = string.Format(get_article_info_url, i + 1, pageSize, userName);
+                    var list = (await HttpHelper.Get<GetArticleInfoResult>(url, null,
+                        new Dictionary<string, string>()
+                        {
+                            { "Cookie", cookies }
+                        }))?.Data.List.OrderByDescending(x => x.ArticleId).ToList();
+                    if (list != null && list.Count > 0)
+                    {
+                        articleInfos.AddRange(list);
+                    }
+                }
+
+                //刷新序号
+                for (int i = 0; i < articleInfos.Count; i++)
+                {
+                    articleInfos[i].IndexDisplay = i + 1;
+                }
 
                 return new OperationResult<List<ArticleInfo>?>()
                 {
                     IsSuccess = true,
-                    Data = (await HttpHelper.Get<GetArticleInfoResult>(url, null,
-                        new Dictionary<string, string>()
-                        {
-                            { "Cookie", cookies }
-                        })
-                    )?.Data.List.OrderByDescending(x => x.ArticleId).ToList()
+                    Data = articleInfos
                 };
             }
             catch (Exception e)

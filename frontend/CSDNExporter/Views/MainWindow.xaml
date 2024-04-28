@@ -39,6 +39,7 @@
                         <CheckBox Content="全选/全不选" IsChecked="{Binding DataContext.IsSelectAll,ElementName=dg,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"></CheckBox>
                     </DataGridCheckBoxColumn.Header>
                 </DataGridCheckBoxColumn>
+                <DataGridTextColumn Header="序号" IsReadOnly="True" Binding="{Binding IndexDisplay}"></DataGridTextColumn>
                 <DataGridTextColumn Header="文章ID" IsReadOnly="True" Binding="{Binding ArticleId}"></DataGridTextColumn>
                 <DataGridTextColumn Header="名称" IsReadOnly="True" MaxWidth="500" Binding="{Binding Title}"></DataGridTextColumn>
                 <DataGridTextColumn Header="阅读数" IsReadOnly="True" Binding="{Binding ViewCount}"></DataGridTextColumn>
